@@ -1,0 +1,1 @@
+this is  a text file .the app.js application can read the file's content to the console.so we can see the current content from the console.这些内容是通过异步的方式读取出来的。

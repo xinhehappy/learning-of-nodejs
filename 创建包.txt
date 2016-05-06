@@ -1,0 +1,9 @@
+创建包的规范应该符合commonJS标准：
+1.package.json必须在包的顶层目录下
+2.二进制文件必须在bin目录下
+3.JavaScript代码应该放在lib目录下
+4.文档应该放到doc目录下
+5.单元测试应该放到test目录下
+
+package.json是commonJS规定的用来描述包的文件，完全符合规范的package.json文件主要包含：
+1.
