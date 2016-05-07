@@ -3,34 +3,77 @@
  * Module dependencies.
  */
 
-var express = require('express');
-var routes = require('./routes');
-var user = require('./routes/user');
-var http = require('http');
-var path = require('path');
+var express = require('express')
+  , routes = require('./routes');
+var settings = require('./settings');
+var session = require('express-session');
+var MongoStore = require('connect-mongo')(session);
 
-var app = express();
+var app = module.exports = express.createServer();
 
-// all environments
-app.set('port', process.env.PORT || 3000);
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-app.use(express.favicon());
-app.use(express.logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded());
-app.use(express.methodOverride());
-app.use(app.router);
-app.use(express.static(path.join(__dirname, 'public')));
-
-// development only
-if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
-}
-
-app.get('/', routes.index);
-app.get('/users', user.list);
-
-http.createServer(app).listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
+// Configuration
+app.configure(function(){
+  app.set('views', __dirname + '/views');
+  app.set('view engine', 'ejs');
+  app.use(express.bodyParser());
+  app.use(express.methodOverride());
+  //cookie解析中间件
+  app.use(express.cookieParser());
+  //将会话信息存储在数据库中
+  app.use(express.session({
+  	secret:settings.cookieSecret,
+  	store:new MongoStore({
+  		db:settings.db
+  	})
+  }));
+  
+  app.use(express.router(routes));
+  app.use(express.static(__dirname + '/public'));
 });
+
+app.configure('development', function(){
+  app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+});
+
+app.configure('production', function(){
+  app.use(express.errorHandler());
+});
+
+app.dynamicHelpers({user:function(req,res){
+	return req.session.user;//误将req写成res，导致无法识别user，所以页面未能显示
+},error:function(req,res){
+	var err=req.flash('error');
+	if(err.length){
+		return err;
+	}else{
+		return null;
+	}
+},
+	success:function(req,res){
+		var succ=req.flash('success');
+		if(succ.length)
+			return succ;
+		else
+			return null;
+	},
+});
+// Routes
+//首页
+// app.get('/', routes.index);
+// //用户首页
+// app.get('u/:user',routes.user);
+// //发表信息
+// app.post('/post',routes.post);
+// //注册界面
+// //app.get('/reg',routes.reg);
+// //发送注册信息界面
+// app.post('/reg',routes.doReg);
+// //登录界面
+// app.get('/login',routes.login);
+// //登录进入
+// app.post('/login',routes.doLogin);
+// //登出界面
+// app.get('/logout',routes.logout);
+
+app.listen(3000);
+console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
