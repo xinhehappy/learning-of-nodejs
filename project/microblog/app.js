@@ -2,6 +2,9 @@
 /**
  * Module dependencies.
  */
+ var fs = require('fs');
+ var accessLogfile = fs.createWriteStream('access.log',{flags:'a'});
+ var errorLogfile = fs.createWriteStream('error.log',{flags:'a'});
 
 var express = require('express')
   , routes = require('./routes');
@@ -13,6 +16,10 @@ var app = module.exports = express.createServer();
 
 // Configuration
 app.configure(function(){
+
+  //访问日志中间件
+  app.use(express.logger({stream:accessLogfile}));
+
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
   app.use(express.bodyParser());
@@ -36,7 +43,13 @@ app.configure('development', function(){
 });
 
 app.configure('production', function(){
-  app.use(express.errorHandler());
+  // app.use(express.errorHandler());
+  //在产品模式下打印出错误日志
+  app.error(function(err,req,res,next){
+    var meta = '[' + new Date() + ']'+req.url + '\n';
+    errorLogfile.write(meta+err.stack+'\n');
+    next();
+    });
 });
 
 app.dynamicHelpers({user:function(req,res){
@@ -75,5 +88,8 @@ app.dynamicHelpers({user:function(req,res){
 // //登出界面
 // app.get('/logout',routes.logout);
 
-app.listen(3000);
-console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+if(!module.parent){
+  app.listen(3000);
+  console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+
+}
